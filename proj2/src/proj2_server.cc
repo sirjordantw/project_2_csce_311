@@ -33,7 +33,7 @@ void ParseMessage(const std::string& msg,
         std::memcpy(&file_count, c_ptr + offset, 4);
         offset += 4;
 
-        for(uint32_t i = 0; i < file_count; i++) {
+        for (uint32_t i = 0; i < file_count; i++) {
             uint32_t path_len;
             std::memcpy(&path_len, c_ptr + offset, 4);
             offset += 4;
@@ -55,7 +55,6 @@ int main(int argc, char* argv[]) {
 
     proj2::FileReaders::Init(std::stoul(argv[2]));
     proj2::ShaSolvers::Init(std::stoul(argv[3]));
-
     proj2::UnixDomainDatagramEndpoint server(argv[1]);
     server.Init();
 
@@ -65,7 +64,6 @@ int main(int argc, char* argv[]) {
 
         if (!request.empty()) {
             std::string* thread = new std::string(std::move(request));
-
             pthread_t tid;
             if (pthread_create(&tid, nullptr, StartRoutine, thread) == 0) {
                 pthread_detach(tid);
@@ -98,6 +96,7 @@ void* StartRoutine(void* arg){
     proj2::ReaderHandle reader_handler = proj2::FileReaders::Checkout(file_paths.size(), &sha_handler);
 
     std::vector<std::vector<proj2::ReaderHandle::HashType>> hash;
+    hash.resize(file_paths.size());
     reader_handler.Process(file_paths, rows_per_file, &hash);
 
     std::string payload;
