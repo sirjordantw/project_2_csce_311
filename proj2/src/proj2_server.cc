@@ -62,11 +62,15 @@ int main(int argc, char* argv[]) {
         std::string temp_addr;
         std::string request = server.RecvFrom(&temp_addr, 65535);
 
+        if (!term) {
+            break;
+        }
+
         if (!request.empty()) {
             std::string* thread = new std::string(std::move(request));
-            pthread_t tid;
-            if (pthread_create(&tid, nullptr, StartRoutine, thread) == 0) {
-                pthread_detach(tid);
+            pthread_t id;
+            if (pthread_create(&id, nullptr, StartRoutine, thread) == 0) {
+                pthread_detach(id);
             } else {
                 delete thread;
             }
