@@ -71,8 +71,8 @@ void* StartRoutine(void* arg);
 
 int main(int argc, char* argv[]) {  
     // Handles signal after signal recieved.
-    std::signal(SIGINT, signal_handler);
-    std::signal(SIGTERM, signal_handler);
+    std::signal(SIGINT, signal_handler); // Console commands
+    std::signal(SIGTERM, signal_handler); // Termination
 
     // Initializes the server and its resources
     // based on arguments given by user.
@@ -92,16 +92,16 @@ int main(int argc, char* argv[]) {
             break;
         }
 
-        // 
-
-        if (request.empty()) {
-            continue;
-        } else {
+        // Handles the request.
+        if (!request.empty()) {
+            // Makes the request a thread.
             std::string* thread = new std::string(std::move(request));
             pthread_t id;
             if (pthread_create(&id, nullptr, StartRoutine, thread) == 0) {
+                // Cleans up the finished thread via its ID.
                 pthread_detach(id);
             } else {
+                // Handler if thread fails to be created.
                 delete thread;
             }
         }
@@ -112,14 +112,16 @@ int main(int argc, char* argv[]) {
 }
 
 void* StartRoutine(void* arg){
+    // Message parsing
     std::string* msg = static_cast<std::string*>(arg);
     std::string client_addr;
     std::vector<std::string> file_paths;
     std::vector<std::uint32_t> rows_per_file;
 
     ParseMessage(*msg, &client_addr, &file_paths, &rows_per_file);
-    delete msg;
+    delete msg; // Deletes from memory once already parsed
 
+    // Gets total number of rows
     uint32_t max_row_count = 0;
     for (uint32_t r : rows_per_file) {
         if (r > max_row_count) {
@@ -127,13 +129,17 @@ void* StartRoutine(void* arg){
         }
     }
 
+    // Gets a unique 64 hexadecimal string that came from the file's contents.
     proj2::SolverHandle sha_handler = proj2::ShaSolvers::Checkout(max_row_count);
     proj2::ReaderHandle reader_handler = proj2::FileReaders::Checkout(file_paths.size(), &sha_handler);
 
+    // Prepars hash to hold size of results,
+    // then fills the hash with 64-character strings.
     std::vector<std::vector<proj2::ReaderHandle::HashType>> hash;
     hash.resize(file_paths.size());
     reader_handler.Process(file_paths, rows_per_file, &hash);
 
+    // Flattens all of hash into a single payload.
     std::string payload;
     for (const auto& f : hash) {
         for (const auto & h : f) {
@@ -141,10 +147,12 @@ void* StartRoutine(void* arg){
         }
     }
 
+    // Writes payload back to client.
     proj2::UnixDomainStreamClient client(client_addr);
     client.Init();
     client.Write(payload.data(), payload.size());
 
+    // Returns handlers for other threads in pool to use.
     proj2::FileReaders::Checkin(std::move(reader_handler));
     proj2::ShaSolvers::Checkin(std::move(sha_handler));
 
