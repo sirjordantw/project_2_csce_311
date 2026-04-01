@@ -1,45 +1,65 @@
 // Copyright 2026 Jordan Weinstein
+// Headers
 #include "domain_socket.h"
 #include "file_reader.h"
 #include "sha_solver.h"
 #include "thread_log.h"
 #include "timings.h"
 
+// Libraries
 #include <pthread.h>
 #include <csignal>
 #include <cstring>
 #include <vector>
 
-volatile std::sig_atomic_t term = 1;
+// Forces compiler to terminate program
+// once signal is recieved.
+volatile std::sig_atomic_t term = 0;
 
 void signal_handler(int signal){
-    term = 0;
+    term = 1;
 }
 
+/*
+ * Parses the message recieved from client.
+ * @param msg : The message
+ * @param client_addr : Address of client in memory
+ * @param file_paths : Path of file
+ * @param rows_per_file : Amount of lines in a file
+ * (Used to tell the server how many lines need to be
+ * processed.)
+ */
 void ParseMessage(const std::string& msg,
     std::string* client_addr,
     std::vector<std::string>* file_paths,
     std::vector<std::uint32_t>* rows_per_file) {
+        // Pointer of msg bytes
         const char* c_ptr = msg.data();
         size_t offset = 0;
 
+        // Gets client's address
         uint32_t reply_len;
         std::memcpy(&reply_len, c_ptr + offset, 4);
         offset += 4;
         *client_addr = std::string(c_ptr + offset, reply_len);
         offset += reply_len;
 
+        // Gets file count
         uint32_t file_count;
         std::memcpy(&file_count, c_ptr + offset, 4);
         offset += 4;
 
+        // Goes through each file from client
         for (uint32_t i = 0; i < file_count; i++) {
+            // Gets the file path's length
             uint32_t path_len;
             std::memcpy(&path_len, c_ptr + offset, 4);
             offset += 4;
+            // Gets the content within file
             file_paths->push_back(std::string(c_ptr + offset, path_len));
             offset += path_len;
 
+            // Gets number of lines in file
             uint32_t row_count;
             std::memcpy(&row_count, c_ptr + offset, 4);
             offset += 4;
@@ -49,24 +69,34 @@ void ParseMessage(const std::string& msg,
 
 void* StartRoutine(void* arg);
 
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[]) {  
+    // Handles signal after signal recieved.
     std::signal(SIGINT, signal_handler);
     std::signal(SIGTERM, signal_handler);
 
+    // Initializes the server and its resources
+    // based on arguments given by user.
     proj2::FileReaders::Init(std::stoul(argv[2]));
     proj2::ShaSolvers::Init(std::stoul(argv[3]));
     proj2::UnixDomainDatagramEndpoint server(argv[1]);
     server.Init();
 
-    while (term) {
+    while (term == 0) {
+        // Gets request from client.
         std::string temp_addr;
         std::string request = server.RecvFrom(&temp_addr, 65535);
 
-        if (!term) {
+        // Just in case condition change is
+        // ignored.
+        if (term == 1) {
             break;
         }
 
-        if (!request.empty()) {
+        // 
+
+        if (request.empty()) {
+            continue;
+        } else {
             std::string* thread = new std::string(std::move(request));
             pthread_t id;
             if (pthread_create(&id, nullptr, StartRoutine, thread) == 0) {
@@ -77,6 +107,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    StopLog();
     return 0;
 }
 

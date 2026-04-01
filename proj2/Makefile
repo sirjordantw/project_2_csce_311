@@ -16,7 +16,7 @@ RM       := rm -f
 MKDIR    := mkdir -p
 
 # Flags
-CXXFLAGS := -std=c++20 -Wall -Wextra -pedantic -g -I.. -pthread
+CXXFLAGS := -std=c++20 -Wall -Wextra -pedantic -g -Iinclude -Ilib/include -I.. -pthread
 LDFLAGS  := -pthread
 
 # Paths / targets
