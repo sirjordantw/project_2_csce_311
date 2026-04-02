@@ -12,14 +12,6 @@
 #include <cstring>
 #include <vector>
 
-// Forces compiler to terminate program
-// once signal is recieved.
-volatile std::sig_atomic_t term = 0;
-
-void signal_handler(int signal){
-    term = 1;
-}
-
 /*
  * Parses the message recieved from client.
  * @param msg : The message
@@ -70,10 +62,6 @@ void ParseMessage(const std::string& msg,
 void* StartRoutine(void* arg);
 
 int main(int argc, char* argv[]) {  
-    // Handles signal after signal recieved.
-    std::signal(SIGINT, signal_handler); // Console commands
-    std::signal(SIGTERM, signal_handler); // Termination
-
     // Initializes the server and its resources
     // based on arguments given by user.
     proj2::FileReaders::Init(std::stoul(argv[2]));
@@ -81,16 +69,10 @@ int main(int argc, char* argv[]) {
     proj2::UnixDomainDatagramEndpoint server(argv[1]);
     server.Init();
 
-    while (term == 0) {
+    for (;;) {
         // Gets request from client.
         std::string temp_addr;
         std::string request = server.RecvFrom(&temp_addr, 65535);
-
-        // Just in case condition change is
-        // ignored.
-        if (term == 1) {
-            break;
-        }
 
         // Handles the request.
         if (!request.empty()) {
