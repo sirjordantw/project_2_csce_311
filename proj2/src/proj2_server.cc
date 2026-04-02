@@ -1,16 +1,15 @@
 // Copyright 2026 Jordan Weinstein
 // Libraries
 #include <pthread.h>
-#include <csignal>
 #include <cstring>
 #include <vector>
 
 // Headers
-#include "proj2/lib/include/domain_socket.h"
-#include "proj2/lib/include/file_reader.h"
-#include "proj2/lib/include/sha_solver.h"
-#include "proj2/lib/include/thread_log.h"
-#include "proj2/lib/include/timings.h"
+#include "proj2/lib/domain_socket.h"
+#include "proj2/lib/file_reader.h"
+#include "proj2/lib/sha_solver.h"
+#include "proj2/lib/thread_log.h"
+#include "proj2/lib/timings.h"
 
 /*
  * Parses the message recieved from client.
