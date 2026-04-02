@@ -1,16 +1,16 @@
 // Copyright 2026 Jordan Weinstein
-// Headers
-#include "domain_socket.h"
-#include "file_reader.h"
-#include "sha_solver.h"
-#include "thread_log.h"
-#include "timings.h"
-
 // Libraries
 #include <pthread.h>
 #include <csignal>
 #include <cstring>
 #include <vector>
+
+// Headers
+#include "proj2/lib/include/domain_socket.h"
+#include "proj2/lib/include/file_reader.h"
+#include "proj2/lib/include/sha_solver.h"
+#include "proj2/lib/include/thread_log.h"
+#include "proj2/lib/include/timings.h"
 
 /*
  * Parses the message recieved from client.
@@ -61,7 +61,7 @@ void ParseMessage(const std::string& msg,
 
 void* StartRoutine(void* arg);
 
-int main(int argc, char* argv[]) {  
+int main(int argc, char* argv[]) {
     // Initializes the server and its resources
     // based on arguments given by user.
     proj2::FileReaders::Init(std::stoul(argv[2]));
@@ -89,11 +89,10 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    StopLog();
     return 0;
 }
 
-void* StartRoutine(void* arg){
+void* StartRoutine(void* arg) {
     // Message parsing
     std::string* msg = static_cast<std::string*>(arg);
     std::string client_addr;
@@ -101,7 +100,7 @@ void* StartRoutine(void* arg){
     std::vector<std::uint32_t> rows_per_file;
 
     ParseMessage(*msg, &client_addr, &file_paths, &rows_per_file);
-    delete msg; // Deletes from memory once already parsed
+    delete msg;  // Deletes from memory once already parsed
 
     // Gets total number of rows
     uint32_t max_row_count = 0;
@@ -112,8 +111,10 @@ void* StartRoutine(void* arg){
     }
 
     // Gets a unique 64 hexadecimal string that came from the file's contents.
-    proj2::SolverHandle sha_handler = proj2::ShaSolvers::Checkout(max_row_count);
-    proj2::ReaderHandle reader_handler = proj2::FileReaders::Checkout(file_paths.size(), &sha_handler);
+    proj2::SolverHandle sha_handler =
+    proj2::ShaSolvers::Checkout(max_row_count);
+    proj2::ReaderHandle reader_handler =
+    proj2::FileReaders::Checkout(file_paths.size(), &sha_handler);
 
     // Prepars hash to hold size of results,
     // then fills the hash with 64-character strings.
@@ -137,6 +138,5 @@ void* StartRoutine(void* arg){
     // Returns handlers for other threads in pool to use.
     proj2::FileReaders::Checkin(std::move(reader_handler));
     proj2::ShaSolvers::Checkin(std::move(sha_handler));
-
     return nullptr;
 }
